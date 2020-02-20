@@ -2,12 +2,12 @@
 These should be typical checks that the validator can handle before having user input.
 
 - [x] Create list!
-- [] Check column names against the default feed
+- [x] Check column names against the default feed
 - [] Check data is appearing in first Sheet
 - [] Check country codes are valid abbreviations
 - [] Check `sku` column is text field (if possible with pandas)
-- [] Check `sku` is present in all rows
-- [] Check `sku` has no delimiters (i.e. commans, pipe, etc.)
+- [x] Check `sku` is present in all rows
+- [] Check `sku` has no delimiters (i.e. commas, pipe, etc.)
 - [] Check `upc` is valid format (can copy over rule from importer)
 - [] Check if product image is of `jpg`, `jpeg`, `png` format
 - [] Check if product image includes `https://` or `http://`
