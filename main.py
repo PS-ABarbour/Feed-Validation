@@ -23,6 +23,8 @@ def main():
     #TODO: better print statements
     rule.processHeaders(file)
     rule.processFields(file)
+    rule.checkCountryCodes(file)
+    rule.dupCheck(file)
 
     return
 
