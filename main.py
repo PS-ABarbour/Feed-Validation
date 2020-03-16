@@ -22,10 +22,12 @@ def main():
     
     #TODO: better print statements
     rule.processHeaders(file)
-    rule.processFields(file)
+    rule.sheetCheck(args.file)
     rule.checkCountryCodes(file)
+    rule.processFields(file)
     rule.dupCheck(file)
     rule.imageCheck(file)
+    rule.productGroupReview(file)
 
     return
 
