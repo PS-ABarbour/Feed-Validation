@@ -20,6 +20,7 @@ def processHeaders(file):
 #TODO: since itertuples gives us everything we should think about looping through it all once then checking (in the case that we have to process way too many products)
 # break sku check into it's own function
 def processFields(file):
+    msg.printHeader("Missing SKU Check")
     items = list(file.itertuples())
     
     # NOTE: Sku processing lists
@@ -50,6 +51,23 @@ def checkHeaders(file):
     
     return notProperHeader
 
+# verifies data is in first sheet and checks if data exists in other sheets
+def sheetCheck(filename):
+    msg.printHeader("Sheet Data Check")
+    file = pd.ExcelFile(filename)
+    sheets = pd.ExcelFile(filename).sheet_names
+    
+    if file.parse(sheets[0]).empty:
+        msg.printStop('The first excel sheet is empty.', f'Sheet Name: {sheets[0]}')  
+    else: 
+        msg.printOkay("The first sheet contains data.")
+    
+    if len(sheets) > 1:
+        for sheet in sheets[1:]:
+            if not file.parse(sheet).empty:
+                msg.printStop('Data found outside of first sheet.', f'Sheet Name: {sheet}')  
+
+
 # reads in json files and returns raw JSON
 def readJSON(path):
     with open(path) as x:
@@ -60,7 +78,7 @@ def readJSON(path):
 def findColumnName(file, regex):
     columns = file.columns.values
     r = re.compile(regex)
-    matches = list(filter(r.match, columns))
+    matches = list(filter(r.search, columns))
     return matches
 
 #NOTE: Verifies country codes are valid
@@ -68,7 +86,7 @@ def findColumnName(file, regex):
 def checkCountryCodes(file):
     msg.printHeader("Country Code Check")
     LibccCodes = set(readJSON('data/code.json')["countryCodes"])
-    feedccCodes = file[findColumnName(file, "country*")[0]].tolist()
+    feedccCodes = file[findColumnName(file, "country.*")[0]].tolist()
     invalidList = list()
     
     for i, x in enumerate(feedccCodes):
@@ -101,9 +119,9 @@ def findDups(columns, file):
 
 # detects duplicates with in the specified fields
 def dupCheck(file):
-    msg.printHeader("Dup Check")
-    columns = findColumnName(file, "(country*|brand*|manufacturer|sku)")
-    lang = findColumnName(file, "lang*")
+    msg.printHeader("Dup SKU Check")
+    columns = findColumnName(file, "(country.*|brand.*|manufacturer|sku)")
+    lang = findColumnName(file, "lang.*")
    
     if lang:
         columns.append(lang[0])
@@ -115,14 +133,14 @@ def dupCheck(file):
 # checks that the imgs include http or https and are in a supported file format (jpg,jpeg,png)
 def imageCheck(file):
     msg.printHeader("Image Check")
-    imageColumn = findColumnName(file, "image*")
+    imageColumn = findColumnName(file, "image.*")
     imageURLs = file[imageColumn[0]].tolist()
     httpErrors = list()
     typeErrors = list()
     
     for i, x in enumerate(imageURLs):
         try:           
-            if not re.search("(http:\/\/*|https:\/\/*)", x):
+            if not re.search("(http:\/\/|https:\/\/)", x):
                 httpErrors.append(f"row {i + 2}: {x}") 
             if not re.search("(\.jpg|\.jpeg|\.png)", x):
                 typeErrors.append(f"row {i + 2}: {x}") 
@@ -139,3 +157,13 @@ def imageCheck(file):
         
     if not typeErrors and not httpErrors: 
          msg.printOkay("All images include http:// or https:// and are in a supported file format")
+
+# prints list unique product groups for review
+def productGroupReview(file):
+    msg.printHeader("Product Group Check")
+    PGcolumn = findColumnName(file, ".*group")[0]
+    uniquePG = file[PGcolumn].unique()
+    
+    msg.printWarning('Please review the following products groups for accuracy.', 
+                     "These product groups affect the functionality of the Where to Buy.\n Please notify your account manager when adding new product groups to the feed.")
+    msg.printWarning(f'Current product groups:', "\n ".join(uniquePG))
