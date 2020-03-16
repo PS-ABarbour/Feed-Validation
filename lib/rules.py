@@ -40,6 +40,7 @@ def processFields(file):
 
 # if we add attributes check within this function we probably don't need the function, and we can just put the logic directly up
 def checkHeaders(file):
+    msg.printHeader("Header Check")
     headerSet = set(['country', 'brandname', 'sku', 'altsku', 'model', 'productname', 'upc', 'releasedate', 'productpageurl', 'imageurl', 'productgroup', 'category', 'map', 'tempmap', 'tempmapstartdate', 'tempmapenddate'])
     notProperHeader = list()
 
@@ -65,20 +66,21 @@ def findColumnName(file, regex):
 #NOTE: Verifies country codes are valid
 #TODO: adjust to also check lang codes
 def checkCountryCodes(file):
+    msg.printHeader("Country Code Check")
     LibccCodes = set(readJSON('data/code.json')["countryCodes"])
     feedccCodes = file[findColumnName(file, "country*")[0]].tolist()
-    ivalidList = list()
+    invalidList = list()
     
     for i, x in enumerate(feedccCodes):
         x = x.lower()
         if x not in LibccCodes:
-            ivalidList.append(f"row {i + 2}: {x}")
+            invalidList.append(f"row {i + 2}: {x}")
             
-    if ivalidList:
+    if invalidList:
         # Looks like we follow ISO 3166-2 with a few exceptions. I think I've seen UK used instead of GB       
-        msg.printWarning("Currently ISO 3166-2 two letter codes are supported.", "Please see for complete list https://en.wikipedia.org/wiki/ISO_3166-2")
-        msg.printStop(f'Ivalid country codes found:', "\n ".join(ivalidList))
-    if not ivalidList: 
+        msg.printWarning("Currently ISO 3166-2 two letter codes are supported.", "Please see https://en.wikipedia.org/wiki/ISO_3166-2")
+        msg.printStop(f'Ivalid country codes found:', "\n ".join(invalidList))
+    if not invalidList: 
          msg.printOkay("Country codes are valid")
 
 # finds duplicate skus within the columns provided. Used in dupCheck
@@ -99,6 +101,7 @@ def findDups(columns, file):
 
 # detects duplicates with in the specified fields
 def dupCheck(file):
+    msg.printHeader("Dup Check")
     columns = findColumnName(file, "(country*|brand*|manufacturer|sku)")
     lang = findColumnName(file, "lang*")
    
@@ -108,3 +111,31 @@ def dupCheck(file):
                     
     if not lang:
         findDups(columns, file)
+
+# checks that the imgs include http or https and are in a supported file format (jpg,jpeg,png)
+def imageCheck(file):
+    msg.printHeader("Image Check")
+    imageColumn = findColumnName(file, "image*")
+    imageURLs = file[imageColumn[0]].tolist()
+    httpErrors = list()
+    typeErrors = list()
+    
+    for i, x in enumerate(imageURLs):
+        try:           
+            if not re.search("(http:\/\/*|https:\/\/*)", x):
+                httpErrors.append(f"row {i + 2}: {x}") 
+            if not re.search("(\.jpg|\.jpeg|\.png)", x):
+                typeErrors.append(f"row {i + 2}: {x}") 
+        except:
+            # pass on nans
+            pass
+        
+    if httpErrors:
+        msg.printStop(f'Invalid or missing http:// or https://', "\n ".join(httpErrors))
+            
+    if typeErrors:
+        msg.printStop(f'Invalid file format:', "\n ".join(typeErrors))
+        msg.printWarning("Supported file formats jpg, jpeg, and png.")
+        
+    if not typeErrors and not httpErrors: 
+         msg.printOkay("All images include http:// or https:// and are in a supported file format")
