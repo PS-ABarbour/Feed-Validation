@@ -25,6 +25,7 @@ def main():
     rule.processFields(file)
     rule.checkCountryCodes(file)
     rule.dupCheck(file)
+    rule.imageCheck(file)
 
     return
 
